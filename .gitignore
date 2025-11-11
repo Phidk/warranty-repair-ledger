@@ -1,0 +1,13 @@
+bin/
+obj/
+*.user
+*.swp
+*.suo
+*.userprefs
+.vs/
+TestResult*/
+.nuget/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+**/appsettings.Development.json

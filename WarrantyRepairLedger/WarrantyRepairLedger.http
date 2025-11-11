@@ -1,0 +1,6 @@
+@WarrantyRepairLedger_HostAddress = http://localhost:5093
+
+GET {{WarrantyRepairLedger_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
