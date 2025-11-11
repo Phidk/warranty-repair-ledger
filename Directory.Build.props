@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Avoid Windows-specific NuGet fallback folders when building on Linux/macOS/Dev Containers -->
+    <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
+    <RestoreFallbackFolders></RestoreFallbackFolders>
+    <!-- Pin the global packages cache inside the repo for consistency across hosts -->
+    <RestorePackagesPath>$(MSBuildThisFileDirectory).nuget/packages</RestorePackagesPath>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+  </PropertyGroup>
+</Project>
