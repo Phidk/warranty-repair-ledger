@@ -1,0 +1,51 @@
+# Change @host to https://localhost:7047 if you're running `dotnet run` directly.
+@host = http://localhost:8080
+@contentType = application/json
+
+### Create product
+POST {{host}}/products
+Content-Type: {{contentType}}
+
+{
+  "name": "Phone X",
+  "brand": "Acme",
+  "serial": "SN-{{$timestamp}}",
+  "purchaseDate": "2024-01-15",
+  "warrantyMonths": 24,
+  "retailer": "Example Store",
+  "price": 499.99
+}
+
+### List products (search by query)
+GET {{host}}/products?q=SN
+
+### Products expiring within 45 days
+GET {{host}}/products/expiring?days=45
+
+### Check warranty status
+GET {{host}}/products/1/in-warranty
+
+### Create repair
+POST {{host}}/repairs
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "openedAt": "{{$datetime iso8601}}",
+  "status": "Open",
+  "notes": "Screen flicker"
+}
+
+### Advance repair to InProgress
+PATCH {{host}}/repairs/1
+Content-Type: {{contentType}}
+
+{
+  "status": "InProgress"
+}
+
+### List open repairs
+GET {{host}}/repairs?status=Open
+
+### Summary report
+GET {{host}}/reports/summary

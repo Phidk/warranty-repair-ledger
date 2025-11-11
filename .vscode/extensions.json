@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "jmrog.vscode-nuget-package-manager",
+    "yzhang.markdown-all-in-one",
+    "ms-azuretools.vscode-docker"
+  ]
+}
