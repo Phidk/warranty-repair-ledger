@@ -110,6 +110,12 @@ Indexes:
 ### Reports
 - `GET /reports/summary` – counts per status, avg days open, soon-to-expire count
 
+## Validation & Errors
+
+- DTOs enforce `[Required]`, `[Range]`, and similar data annotations; invalid payloads return `400` responses serialized as RFC 7807 `application/problem+json` with the `errors` dictionary populated per field.
+- Unhandled exceptions are caught by a centralized `ProblemDetailsExceptionHandler`, producing a `500` RFC 7807 payload that includes a `traceId` extension for correlating logs.
+- When running in Development or Testing (including the Dev Container), hitting `GET /diagnostics/throw` intentionally raises an exception so you can verify the error contract end-to-end.
+
 ## Warranty assumptions
 
 - Default coverage is 24 months from purchase, aligning with the Danish Sale of Goods Act (Købeloven §§78-81) and EU directive 2019/771
@@ -137,6 +143,7 @@ Tests cover:
 - warranty math edge cases (default months + expiry boundaries)
 - repair status transition rules
 - expiring-products query
+- validation + RFC 7807 responses (including the diagnostics exception endpoint)
 - end-to-end flow: product → repair → summary report
 
 ## Project Structure

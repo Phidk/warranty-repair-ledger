@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using WarrantyRepairLedger.Data;
 using WarrantyRepairLedger.Dtos;
+using WarrantyRepairLedger.Filters;
 using WarrantyRepairLedger.Models;
 
 namespace WarrantyRepairLedger.Endpoints;
@@ -12,9 +13,11 @@ public static class RepairEndpoints
     {
         var group = routes.MapGroup("/repairs");
 
-        group.MapPost("/", CreateRepair);
+        group.MapPost("/", CreateRepair)
+            .AddEndpointFilter(new ValidationFilter<RepairCreateRequest>());
         group.MapGet("/", GetRepairs);
-        group.MapPatch("/{id:int}", UpdateRepairStatus);
+        group.MapPatch("/{id:int}", UpdateRepairStatus)
+            .AddEndpointFilter(new ValidationFilter<RepairStatusUpdateRequest>());
 
         return group;
     }
@@ -24,12 +27,6 @@ public static class RepairEndpoints
         LedgerDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var errors = ValidateRepairCreate(request);
-        if (errors.Count > 0)
-        {
-            return TypedResults.ValidationProblem(errors);
-        }
-
         var productExists = await dbContext.Products
             .AnyAsync(p => p.Id == request.ProductId, cancellationToken);
 
@@ -118,23 +115,6 @@ public static class RepairEndpoints
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return TypedResults.Ok(RepairResponse.FromEntity(repair));
-    }
-
-    private static Dictionary<string, string[]> ValidateRepairCreate(RepairCreateRequest request)
-    {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-
-        if (request.ProductId <= 0)
-        {
-            errors[nameof(request.ProductId)] = ["ProductId must be provided."];
-        }
-
-        if (request.Cost is not null and < 0)
-        {
-            errors[nameof(request.Cost)] = ["Cost cannot be negative."];
-        }
-
-        return errors;
     }
 
     // Enforces the simple state machine Open -> InProgress -> Fixed or Rejected

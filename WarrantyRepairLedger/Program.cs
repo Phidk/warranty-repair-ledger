@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using WarrantyRepairLedger.Data;
+using WarrantyRepairLedger.Diagnostics;
 using WarrantyRepairLedger.Endpoints;
 using WarrantyRepairLedger.Options;
 using WarrantyRepairLedger.Serialization;
@@ -14,6 +17,16 @@ builder.Services.Configure<WarrantyOptions>(
     builder.Configuration.GetSection(WarrantyOptions.SectionName));
 
 builder.Services.AddSingleton<WarrantyEvaluator>();
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = ctx =>
+    {
+        var traceId = Activity.Current?.Id ?? ctx.HttpContext.TraceIdentifier;
+        ctx.ProblemDetails.Extensions["traceId"] = traceId;
+    };
+});
+builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -40,6 +53,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+{
+    app.MapGet("/diagnostics/throw", (HttpContext _) =>
+        throw new InvalidOperationException("Simulated failure for diagnostics."))
+        .ExcludeFromDescription();
+}
+
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.MapProductEndpoints();

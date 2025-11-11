@@ -1,15 +1,20 @@
+using System.ComponentModel.DataAnnotations;
 using WarrantyRepairLedger.Models;
 
 namespace WarrantyRepairLedger.Dtos;
 
 public record RepairCreateRequest(
+    [property: Range(1, int.MaxValue, ErrorMessage = "ProductId must be provided.")]
     int ProductId,
     DateTimeOffset? OpenedAt,
     RepairStatus? Status,
+    [property: Range(0, double.MaxValue, ErrorMessage = "Cost cannot be negative.")]
     decimal? Cost,
     string? Notes);
 
-public record RepairStatusUpdateRequest(RepairStatus Status);
+public record RepairStatusUpdateRequest(
+    [property: Required(ErrorMessage = "Status is required.")]
+    RepairStatus Status);
 
 public record RepairResponse(
     int Id,

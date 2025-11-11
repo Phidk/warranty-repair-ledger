@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using WarrantyRepairLedger.Data;
 using WarrantyRepairLedger.Dtos;
+using WarrantyRepairLedger.Filters;
 using WarrantyRepairLedger.Models;
 using WarrantyRepairLedger.Options;
 using WarrantyRepairLedger.Services;
@@ -15,7 +16,8 @@ public static class ProductEndpoints
     {
         var group = routes.MapGroup("/products");
 
-        group.MapPost("/", CreateProduct);
+        group.MapPost("/", CreateProduct)
+            .AddEndpointFilter(new ValidationFilter<ProductCreateRequest>());
         group.MapGet("/", GetProducts);
         group.MapGet("/{id:int}", GetProduct);
         group.MapGet("/{id:int}/in-warranty", GetWarrantyStatus);
@@ -30,12 +32,6 @@ public static class ProductEndpoints
         IOptions<WarrantyOptions> warrantyOptions,
         CancellationToken cancellationToken) 
     {
-        var errors = ValidateProductRequest(request);
-        if (errors.Count > 0)
-        {
-            return TypedResults.ValidationProblem(errors);
-        }
-
         var normalizedSerial = request.Serial.Trim();
         var existingSerial = await dbContext.Products
             .AnyAsync(p => p.Serial == normalizedSerial, cancellationToken);
@@ -161,33 +157,6 @@ public static class ProductEndpoints
             .ToList();
 
         return TypedResults.Ok<IEnumerable<ExpiringProductResponse>>(expiring);
-    }
-
-    private static Dictionary<string, string[]> ValidateProductRequest(ProductCreateRequest request)
-    {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            errors[nameof(request.Name)] = ["Name is required."];
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Serial))
-        {
-            errors[nameof(request.Serial)] = ["Serial is required."];
-        }
-
-        if (request.PurchaseDate == default)
-        {
-            errors[nameof(request.PurchaseDate)] = ["Purchase date is required."];
-        }
-
-        if (request.WarrantyMonths is not null and <= 0)
-        {
-            errors[nameof(request.WarrantyMonths)] = ["Warranty months must be positive."];
-        }
-
-        return errors;
     }
 
     private static int GetWarrantyMonths(ProductCreateRequest request, WarrantyOptions options)
