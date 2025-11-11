@@ -11,6 +11,8 @@ using WarrantyRepairLedger.Options;
 using WarrantyRepairLedger.Serialization;
 using WarrantyRepairLedger.Services;
 
+const string CorsPolicyName = "LedgerFrontend";
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<WarrantyOptions>(
@@ -36,6 +38,25 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    var allowedOrigins = new[]
+    {
+        "http://localhost:5173",
+        "https://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "https://localhost:4173",
+        "http://127.0.0.1:4173",
+    };
+
+    options.AddPolicy(CorsPolicyName, policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var connectionString = builder.Configuration.GetConnectionString("Default") ?? "Data Source=./data/ledger.db";
 
@@ -62,6 +83,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+app.UseCors(CorsPolicyName);
 
 app.MapProductEndpoints();
 app.MapRepairEndpoints();

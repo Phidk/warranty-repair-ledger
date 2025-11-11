@@ -8,6 +8,7 @@ Minimal local-first web app for tracking purchases, warranty windows, and repair
 - Track repair cases per product with clear status transitions
 - “Expiring soon” view (e.g., warranties ending in the next N days)
 - Summary report: counts by status, average repair duration
+- Optional React frontend that rides on the same API for quick demos: add products, view expiring warranties, and read the summary at a glance
 - Local SQLite database; runs entirely offline
 - Swagger/OpenAPI docs for quick exploration
 - xUnit integration tests using an in-memory SQLite database
@@ -31,7 +32,7 @@ This project is tuned for the VS Code Dev Container workflow so you never have t
 
 2. **Open inside the container**  
    - Clone the repo locally and run “Dev Containers: Open Folder in Container…”  
-   The `.devcontainer` image already includes .NET 8 and SQLite; a post-create script resets file permissions/cleans `bin`+`obj`, runs `dotnet restore`, `dotnet tool restore`, and applies the EF Core migration. A named Docker volume (`<repo>-data`) persists `data/ledger.db`. If you pull this repo after the container already exists, run **Dev Containers: Rebuild Container** so the script re-executes.
+   The `.devcontainer` image already includes .NET 8, SQLite, and Node.js 20 + npm; a post-create script resets file permissions/cleans `bin`+`obj`, runs `dotnet restore`, `dotnet tool restore`, and applies the EF Core migration. A named Docker volume (`<repo>-data`) persists `data/ledger.db`. If you pull this repo after the container already exists, run **Dev Containers: Rebuild Container** so the script re-executes.
 
 3. **Run the API** (inside the Dev Container terminal)  
    ```bash
@@ -48,6 +49,28 @@ This project is tuned for the VS Code Dev Container workflow so you never have t
    dotnet test
    ```
    This covers warranty math, repair transitions, expiring queries, and the integration path end-to-end.
+
+## Frontend helper UI (React)
+
+`frontend/` contains a small Vite + React app that rides on the same API so non-backend reviewers can poke at the data model without dropping to REST tooling.
+
+### Run the frontend locally
+
+1. Keep the API running on `http://localhost:8080` (e.g., `dotnet watch run ...`).
+2. In a second terminal:
+   ```bash
+   cd frontend
+   npm install        # first run only
+   npm run dev
+   ```
+   The dev server listens on http://localhost:5173 (bound to `0.0.0.0` so it works via Dev Container/Codespace port forwarding) and calls the API via the browser. Set `VITE_API_URL` if your API lives on a different origin/port.
+3. Build the static bundle with:
+   ```bash
+   npm run build
+   ```
+
+The backend now exposes a `LedgerFrontend` CORS policy that whitelists the Vite dev/preview ports on localhost/127.0.0.1 (5173 + 4173), so the UI can talk to the API without a reverse proxy. Update `Program.cs` if you need to allow additional origins.
+The Dev Container ships with Node.js 20 and npm, so you can run the above commands inside VS Code without extra setup.
 
 ## Data Model (EF Core)
 

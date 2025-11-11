@@ -11,10 +11,13 @@
   "mounts": [
     "source=${localWorkspaceFolderBasename}-data,target=${containerWorkspaceFolder}/data,type=volume"
   ],
-  "forwardPorts": [8080],
+  "forwardPorts": [8080, 5173],
   "portsAttributes": {
     "8080": {
       "label": "API (http://localhost:8080/swagger)"
+    },
+    "5173": {
+      "label": "Vite dev server"
     }
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
