@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import ProductForm from './components/ProductForm'
 import ProductList from './components/ProductList'
 import ExpiringList from './components/ExpiringList'
 import SummaryPanel from './components/SummaryPanel'
-import { ApiError, createProduct, fetchExpiringProducts, fetchProducts, fetchSummaryReport } from './api'
-import type { CreateProductPayload, ExpiringProductResponse, Product, SummaryReport } from './api'
+import { ApiError, createProduct, fetchExpiringProducts, fetchProducts, fetchSummaryReport, fetchWarrantyStatus } from './api'
+import type {
+  CreateProductPayload,
+  ExpiringProductResponse,
+  Product,
+  SummaryReport,
+  WarrantyStatusResponse,
+} from './api'
 
 const DEFAULT_EXPIRING_WINDOW = 45
 
@@ -25,8 +31,16 @@ function App() {
   const [expiringInput, setExpiringInput] = useState(DEFAULT_EXPIRING_WINDOW.toString())
   const [expiringInputError, setExpiringInputError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const productQueryRef = useRef('')
+  const [productQuery, setProductQuery] = useState(productQueryRef.current)
+  const [productSearchInput, setProductSearchInput] = useState(productQueryRef.current)
+  const [warrantyStatuses, setWarrantyStatuses] = useState<Record<number, WarrantyStatusResponse>>({})
+  const [warrantyErrors, setWarrantyErrors] = useState<Record<number, string>>({})
+  const [warrantyLoading, setWarrantyLoading] = useState<Record<number, boolean>>({})
 
-  const loadData = useCallback(async (days: number, mode: LoadMode = 'refresh') => {
+  const loadData = useCallback(async (days: number, mode: LoadMode = 'refresh', queryOverride?: string) => {
+    const appliedQuery = queryOverride ?? productQueryRef.current
+
     if (mode === 'initial') {
       setLoading(true)
     } else {
@@ -35,13 +49,17 @@ function App() {
 
     try {
       const [productsData, expiringData, summaryData] = await Promise.all([
-        fetchProducts(),
+        fetchProducts(appliedQuery),
         fetchExpiringProducts(days),
         fetchSummaryReport(),
       ])
       setProducts(productsData)
       setExpiring(expiringData)
       setSummary(summaryData)
+      if (productQueryRef.current !== appliedQuery) {
+        productQueryRef.current = appliedQuery
+      }
+      setProductQuery((prev) => (prev === appliedQuery ? prev : appliedQuery))
       setError(null)
       setLastUpdated(new Date())
     } catch (err) {
@@ -105,7 +123,65 @@ function App() {
     await loadData(parsed, 'refresh')
   }
 
+  const handleSearchInputChange = (value: string) => {
+    setProductSearchInput(value)
+  }
+
+  const handleApplyProductSearch = async () => {
+    if (refreshing) {
+      return
+    }
+
+    const trimmed = productSearchInput.trim()
+    if (trimmed === productQuery) {
+      return
+    }
+
+    setProductSearchInput(trimmed)
+    await loadData(expiringDays, 'refresh', trimmed)
+  }
+
+  const handleClearProductSearch = async () => {
+    if (refreshing) {
+      return
+    }
+
+    if (!productQuery && productSearchInput.length === 0) {
+      return
+    }
+
+    setProductSearchInput('')
+    await loadData(expiringDays, 'refresh', '')
+  }
+
+  const handleCheckWarranty = async (productId: number) => {
+    setWarrantyErrors((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
+    setWarrantyLoading((prev) => ({ ...prev, [productId]: true }))
+
+    try {
+      const status = await fetchWarrantyStatus(productId)
+      setWarrantyStatuses((prev) => ({ ...prev, [productId]: status }))
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Unable to check warranty status. See server logs for details.'
+      setWarrantyErrors((prev) => ({ ...prev, [productId]: message }))
+    } finally {
+      setWarrantyLoading((prev) => {
+        const next = { ...prev }
+        delete next[productId]
+        return next
+      })
+    }
+  }
+
   const showInitialLoader = loading && !products.length && !summary && !expiring.length
+  const trimmedProductSearch = productSearchInput.trim()
+  const canApplyProductSearch = trimmedProductSearch !== productQuery
+  const canClearProductSearch = Boolean(productQuery) || productSearchInput.length > 0
 
   return (
     <div className="app-shell">
@@ -150,7 +226,27 @@ function App() {
             <SummaryPanel summary={summary} isRefreshing={refreshing} lastUpdated={lastUpdated} onRefresh={handleRefresh} />
           </div>
 
-          <ProductList products={products} />
+          <ProductList
+            products={products}
+            isRefreshing={refreshing}
+            searchValue={productSearchInput}
+            appliedQuery={productQuery}
+            onSearchInputChange={handleSearchInputChange}
+            onApplySearch={() => {
+              void handleApplyProductSearch()
+            }}
+            onClearSearch={() => {
+              void handleClearProductSearch()
+            }}
+            canApplySearch={canApplyProductSearch}
+            canClearSearch={canClearProductSearch}
+            warrantyStatuses={warrantyStatuses}
+            warrantyErrors={warrantyErrors}
+            warrantyLoading={warrantyLoading}
+            onCheckWarranty={(productId) => {
+              void handleCheckWarranty(productId)
+            }}
+          />
 
           <ExpiringList
             items={expiring}

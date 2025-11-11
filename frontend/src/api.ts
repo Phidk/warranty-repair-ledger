@@ -41,6 +41,12 @@ export interface SummaryReport {
   expiringProducts: number;
 }
 
+export interface WarrantyStatusResponse {
+  inWarranty: boolean;
+  expiresOn: string;
+  reason: string;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
   const headers: HeadersInit = {
@@ -82,8 +88,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchProducts(): Promise<Product[]> {
-  return await request<Product[]>('/products');
+export async function fetchProducts(query?: string): Promise<Product[]> {
+  const path = query && query.trim().length > 0 ? `/products?q=${encodeURIComponent(query.trim())}` : '/products';
+  return await request<Product[]>(path);
 }
 
 export async function fetchExpiringProducts(days: number): Promise<ExpiringProductResponse[]> {
@@ -100,4 +107,8 @@ export async function createProduct(payload: CreateProductPayload): Promise<Prod
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function fetchWarrantyStatus(productId: number): Promise<WarrantyStatusResponse> {
+  return await request<WarrantyStatusResponse>(`/products/${productId}/in-warranty`);
 }

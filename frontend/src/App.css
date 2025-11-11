@@ -53,6 +53,34 @@
   margin-bottom: 1rem;
 }
 
+.search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.search-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 220px;
+}
+
+.search-controls label span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.08em;
+}
+
+.search-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -147,6 +175,33 @@ th {
   font-size: 0.8rem;
   background: #e0f2fe;
   color: #0369a1;
+}
+
+.tag-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tag-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.warranty-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.warranty-meta {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.warranty-reason {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
 }
 
 .expiring-header {
