@@ -14,6 +14,9 @@ interface ProductListProps {
   warrantyStatuses: Record<number, WarrantyStatusResponse>
   warrantyErrors: Record<number, string>
   warrantyLoading: Record<number, boolean>
+  onDeleteProduct: (productId: number) => void
+  deleteLoading: Record<number, boolean>
+  deleteErrors: Record<number, string>
 }
 
 const formatDate = (value: string) => {
@@ -42,6 +45,9 @@ const ProductList = ({
   warrantyStatuses,
   warrantyErrors,
   warrantyLoading,
+  onDeleteProduct,
+  deleteLoading,
+  deleteErrors,
 }: ProductListProps) => {
   const handleApplySearch = () => {
     if (!canApplySearch || isRefreshing) {
@@ -113,6 +119,8 @@ const ProductList = ({
                 const status = warrantyStatuses[product.id]
                 const statusError = warrantyErrors[product.id]
                 const isChecking = Boolean(warrantyLoading[product.id])
+                const isDeleting = Boolean(deleteLoading[product.id])
+                const deleteError = deleteErrors[product.id]
 
                 return (
                   <tr key={product.id}>
@@ -140,9 +148,25 @@ const ProductList = ({
                           <p className="warranty-meta muted">Run a check to view coverage status.</p>
                         )}
                         {statusError && <p className="form-hint error">{statusError}</p>}
-                        <button type="button" onClick={() => onCheckWarranty(product.id)} disabled={isChecking}>
-                          {isChecking ? 'Checking...' : 'Check warranty'}
-                        </button>
+                        <div className="warranty-actions">
+                          <button
+                            type="button"
+                            className="button-small"
+                            onClick={() => onCheckWarranty(product.id)}
+                            disabled={isChecking}
+                          >
+                            {isChecking ? 'Checking...' : 'Check warranty'}
+                          </button>
+                          <button
+                            type="button"
+                            className="button-danger button-small"
+                            onClick={() => onDeleteProduct(product.id)}
+                            disabled={isDeleting || isRefreshing}
+                          >
+                            {isDeleting ? 'Deleting...' : 'Delete product'}
+                          </button>
+                        </div>
+                        {deleteError && <p className="form-hint error">{deleteError}</p>}
                       </div>
                     </td>
                   </tr>

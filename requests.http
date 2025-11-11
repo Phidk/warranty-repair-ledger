@@ -25,6 +25,9 @@ GET {{host}}/products/expiring?days=45
 ### Check warranty status
 GET {{host}}/products/1/in-warranty
 
+### Delete product
+DELETE {{host}}/products/1
+
 ### Create repair
 POST {{host}}/repairs
 Content-Type: {{contentType}}

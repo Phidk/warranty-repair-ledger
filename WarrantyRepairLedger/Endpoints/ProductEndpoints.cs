@@ -22,6 +22,7 @@ public static class ProductEndpoints
         group.MapGet("/{id:int}", GetProduct);
         group.MapGet("/{id:int}/in-warranty", GetWarrantyStatus);
         group.MapGet("/expiring", GetExpiringProducts);
+        group.MapDelete("/{id:int}", DeleteProduct);
 
         return group;
     }
@@ -122,6 +123,25 @@ public static class ProductEndpoints
         var response = new WarrantyStatusResponse(window.InWarranty, window.ExpiresOn, window.Reason);
 
         return TypedResults.Ok(response);
+    }
+
+    private static async Task<Results<NoContent, NotFound>> DeleteProduct(
+        int id,
+        LedgerDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var product = await dbContext.Products
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        if (product is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        dbContext.Products.Remove(product);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<Results<Ok<IEnumerable<ExpiringProductResponse>>, ValidationProblem>> GetExpiringProducts(

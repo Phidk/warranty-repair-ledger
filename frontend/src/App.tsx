@@ -4,11 +4,27 @@ import ProductForm from './components/ProductForm'
 import ProductList from './components/ProductList'
 import ExpiringList from './components/ExpiringList'
 import SummaryPanel from './components/SummaryPanel'
-import { ApiError, createProduct, fetchExpiringProducts, fetchProducts, fetchSummaryReport, fetchWarrantyStatus } from './api'
+import RepairForm from './components/RepairForm'
+import RepairList from './components/RepairList'
+import {
+  ApiError,
+  createProduct,
+  createRepair,
+  deleteProduct,
+  fetchExpiringProducts,
+  fetchProducts,
+  fetchRepairs,
+  fetchSummaryReport,
+  fetchWarrantyStatus,
+  updateRepairStatus,
+} from './api'
 import type {
   CreateProductPayload,
+  CreateRepairPayload,
   ExpiringProductResponse,
   Product,
+  Repair,
+  RepairStatus,
   SummaryReport,
   WarrantyStatusResponse,
 } from './api'
@@ -16,6 +32,7 @@ import type {
 const DEFAULT_EXPIRING_WINDOW = 45
 
 type LoadMode = 'initial' | 'refresh'
+type RepairFilter = RepairStatus | 'All'
 
 function App() {
   const [products, setProducts] = useState<Product[]>([])
@@ -37,6 +54,18 @@ function App() {
   const [warrantyStatuses, setWarrantyStatuses] = useState<Record<number, WarrantyStatusResponse>>({})
   const [warrantyErrors, setWarrantyErrors] = useState<Record<number, string>>({})
   const [warrantyLoading, setWarrantyLoading] = useState<Record<number, boolean>>({})
+  const [repairs, setRepairs] = useState<Repair[]>([])
+  const [repairsLoading, setRepairsLoading] = useState(true)
+  const [repairsRefreshing, setRepairsRefreshing] = useState(false)
+  const [repairError, setRepairError] = useState<string | null>(null)
+  const [repairStatusFilter, setRepairStatusFilter] = useState<RepairFilter>('Open')
+  const [isCreatingRepair, setIsCreatingRepair] = useState(false)
+  const [repairFormError, setRepairFormError] = useState<string | null>(null)
+  const [repairFormSuccess, setRepairFormSuccess] = useState<string | null>(null)
+  const [repairActionErrors, setRepairActionErrors] = useState<Record<number, string>>({})
+  const [repairActionLoading, setRepairActionLoading] = useState<Record<number, boolean>>({})
+  const [productDeleteErrors, setProductDeleteErrors] = useState<Record<number, string>>({})
+  const [productDeleteLoading, setProductDeleteLoading] = useState<Record<number, boolean>>({})
 
   const loadData = useCallback(async (days: number, mode: LoadMode = 'refresh', queryOverride?: string) => {
     const appliedQuery = queryOverride ?? productQueryRef.current
@@ -81,6 +110,40 @@ function App() {
     void loadData(DEFAULT_EXPIRING_WINDOW, 'initial')
   }, [loadData])
 
+  const loadRepairs = useCallback(
+    async (statusOverride?: RepairFilter, mode: LoadMode = 'refresh') => {
+      const appliedFilter = statusOverride ?? repairStatusFilter
+
+      if (mode === 'initial') {
+        setRepairsLoading(true)
+      } else {
+        setRepairsRefreshing(true)
+      }
+
+      try {
+        const repairsData = await fetchRepairs(appliedFilter === 'All' ? undefined : appliedFilter)
+        setRepairs(repairsData)
+        setRepairError(null)
+        setRepairStatusFilter((prev) => (prev === appliedFilter ? prev : appliedFilter))
+      } catch (err) {
+        const message =
+          err instanceof ApiError ? err.message : 'Unable to load repairs. Check the API logs for details.'
+        setRepairError(message)
+      } finally {
+        if (mode === 'initial') {
+          setRepairsLoading(false)
+        } else {
+          setRepairsRefreshing(false)
+        }
+      }
+    },
+    [repairStatusFilter],
+  )
+
+  useEffect(() => {
+    void loadRepairs('Open', 'initial')
+  }, [loadRepairs])
+
   const handleRefresh = useCallback(async () => {
     await loadData(expiringDays, 'refresh')
   }, [expiringDays, loadData])
@@ -104,6 +167,103 @@ function App() {
       return false
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handleCreateRepair = async (payload: CreateRepairPayload) => {
+    setIsCreatingRepair(true)
+    setRepairFormError(null)
+    setRepairFormSuccess(null)
+
+    try {
+      const repair = await createRepair(payload)
+      const productName = products.find((product) => product.id === repair.productId)?.name ?? `product #${repair.productId}`
+      setRepairFormSuccess(`Opened repair #${repair.id} for ${productName}.`)
+      await Promise.all([loadRepairs(undefined, 'refresh'), loadData(expiringDays, 'refresh')])
+      return true
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Unable to open the repair. Check the API logs for details.'
+      setRepairFormError(message)
+      return false
+    } finally {
+      setIsCreatingRepair(false)
+    }
+  }
+
+  const handleUpdateRepairStatus = async (repairId: number, nextStatus: RepairStatus) => {
+    setRepairActionErrors((prev) => {
+      const next = { ...prev }
+      delete next[repairId]
+      return next
+    })
+    setRepairActionLoading((prev) => ({ ...prev, [repairId]: true }))
+
+    try {
+      await updateRepairStatus(repairId, nextStatus)
+      await Promise.all([loadRepairs(undefined, 'refresh'), loadData(expiringDays, 'refresh')])
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Unable to update the repair status. Check the API logs for details.'
+      setRepairActionErrors((prev) => ({ ...prev, [repairId]: message }))
+    } finally {
+      setRepairActionLoading((prev) => {
+        const next = { ...prev }
+        delete next[repairId]
+        return next
+      })
+    }
+  }
+
+  const handleRepairFilterChange = async (nextFilter: RepairFilter) => {
+    if (nextFilter === repairStatusFilter && !repairsRefreshing) {
+      return
+    }
+
+    await loadRepairs(nextFilter, 'refresh')
+  }
+
+  const handleRefreshRepairs = async () => {
+    await loadRepairs(undefined, 'refresh')
+  }
+
+  const handleDeleteProduct = async (productId: number) => {
+    const target = products.find((product) => product.id === productId)
+    const confirmed = window.confirm(
+      `Delete "${target?.name ?? 'this product'}"? This also removes any associated repairs.`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setProductDeleteErrors((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
+    setProductDeleteLoading((prev) => ({ ...prev, [productId]: true }))
+
+    try {
+      await deleteProduct(productId)
+      setWarrantyStatuses((prev) => {
+        const next = { ...prev }
+        delete next[productId]
+        return next
+      })
+      await Promise.all([loadData(expiringDays, 'refresh'), loadRepairs(undefined, 'refresh')])
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Unable to delete the product. Check the API logs for details.'
+      setProductDeleteErrors((prev) => ({ ...prev, [productId]: message }))
+    } finally {
+      setProductDeleteLoading((prev) => {
+        const next = { ...prev }
+        delete next[productId]
+        return next
+      })
     }
   }
 
@@ -246,16 +406,59 @@ function App() {
             onCheckWarranty={(productId) => {
               void handleCheckWarranty(productId)
             }}
+            onDeleteProduct={(productId) => {
+              void handleDeleteProduct(productId)
+            }}
+            deleteLoading={productDeleteLoading}
+            deleteErrors={productDeleteErrors}
           />
 
-          <ExpiringList
-            items={expiring}
-            currentWindow={expiringDays}
-            inputValue={expiringInput}
-            inputError={expiringInputError}
-            isRefreshing={refreshing}
-            onInputChange={handleExpiringInputChange}
-            onApplyWindow={handleApplyExpiringWindow}
+          <div className="grid">
+            <section className="card">
+              <div className="card-header">
+                <div>
+                  <h2>Open a repair</h2>
+                  <p className="muted">Create a case before it escalates.</p>
+                </div>
+              </div>
+              <RepairForm
+                products={products}
+                isSubmitting={isCreatingRepair}
+                onCreate={handleCreateRepair}
+                serverError={repairFormError}
+                successMessage={repairFormSuccess}
+              />
+            </section>
+
+            <ExpiringList
+              items={expiring}
+              currentWindow={expiringDays}
+              inputValue={expiringInput}
+              inputError={expiringInputError}
+              isRefreshing={refreshing}
+              onInputChange={handleExpiringInputChange}
+              onApplyWindow={handleApplyExpiringWindow}
+            />
+          </div>
+
+          <RepairList
+            repairs={repairs}
+            products={products}
+            filter={repairStatusFilter}
+            isLoading={repairsLoading}
+            isRefreshing={repairsRefreshing}
+            error={repairError}
+            onFilterChange={(next) => {
+              void handleRepairFilterChange(next)
+            }}
+            onRefresh={() => {
+              void handleRefreshRepairs()
+            }}
+            onAdvanceStatus={(repairId, status) => {
+              void handleUpdateRepairStatus(repairId, status)
+            }}
+            actionErrors={repairActionErrors}
+            actionLoading={repairActionLoading}
           />
         </>
       )}

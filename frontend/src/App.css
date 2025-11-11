@@ -107,6 +107,14 @@
   gap: 1rem;
 }
 
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -193,6 +201,13 @@ th {
   gap: 0.3rem;
 }
 
+.warranty-actions,
+.action-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .warranty-meta {
   margin: 0;
   font-size: 0.9rem;
@@ -202,6 +217,24 @@ th {
   margin: 0;
   font-size: 0.85rem;
   color: #475569;
+}
+
+.repair-product {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.repair-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.repair-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .expiring-header {

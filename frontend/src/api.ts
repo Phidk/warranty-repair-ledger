@@ -47,6 +47,27 @@ export interface WarrantyStatusResponse {
   reason: string;
 }
 
+export type RepairStatus = 'Open' | 'InProgress' | 'Fixed' | 'Rejected';
+
+export interface Repair {
+  id: number;
+  productId: number;
+  status: RepairStatus;
+  openedAt: string;
+  closedAt?: string | null;
+  cost?: number | null;
+  notes?: string | null;
+  consumerOptedForRepair: boolean;
+}
+
+export interface CreateRepairPayload {
+  productId: number;
+  openedAt?: string;
+  cost?: number;
+  notes?: string;
+  consumerOptedForRepair?: boolean;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
   const headers: HeadersInit = {
@@ -111,4 +132,29 @@ export async function createProduct(payload: CreateProductPayload): Promise<Prod
 
 export async function fetchWarrantyStatus(productId: number): Promise<WarrantyStatusResponse> {
   return await request<WarrantyStatusResponse>(`/products/${productId}/in-warranty`);
+}
+
+export async function deleteProduct(productId: number): Promise<void> {
+  await request<void>(`/products/${productId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function fetchRepairs(status?: RepairStatus): Promise<Repair[]> {
+  const query = status ? `?status=${status}` : '';
+  return await request<Repair[]>(`/repairs${query}`);
+}
+
+export async function createRepair(payload: CreateRepairPayload): Promise<Repair> {
+  return await request<Repair>('/repairs', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateRepairStatus(repairId: number, status: RepairStatus): Promise<Repair> {
+  return await request<Repair>(`/repairs/${repairId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
 }

@@ -8,7 +8,7 @@ Minimal local-first web app for tracking purchases, warranty windows, and repair
 - Track repair cases per product with clear status transitions
 - “Expiring soon” view (e.g., warranties ending in the next N days)
 - Summary report: counts by status, average repair duration
-- Optional React frontend that rides on the same API for quick demos: add products, view expiring warranties, and read the summary at a glance
+- Optional React frontend that rides on the same API for quick demos: add/delete products, open and advance repairs, view expiring warranties, and read the summary at a glance
 - Local SQLite database; runs entirely offline
 - Swagger/OpenAPI docs for quick exploration
 - xUnit integration tests using an in-memory SQLite database
@@ -53,6 +53,11 @@ This project is tuned for the VS Code Dev Container workflow so you never have t
 ## Frontend helper UI (React)
 
 `frontend/` contains a small Vite + React app that rides on the same API so non-backend reviewers can poke at the data model without dropping to REST tooling.
+
+It now mirrors the CLI workflow end-to-end:
+- add or delete products straight from the UI (with warranty checks inline)
+- open repairs, mark them InProgress → Fixed/Rejected, and filter by status without re-issuing manual REST calls
+- adjust the “expiring soon” window and refresh the snapshot panel with a click
 
 ### Run the frontend locally
 
@@ -117,6 +122,7 @@ Indexes:
 - `GET /products` – list products (optional `q` to filter by name/serial)
 - `GET /products/expiring?days=30` – warranties ending within N days
 - `GET /products/{id}/in-warranty` – boolean with reason
+- `DELETE /products/{id}` – remove a product (and cascade delete its repairs)
 
 ### Repairs
 - `POST /repairs` – create a repair  

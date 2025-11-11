@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using WarrantyRepairLedger.Dtos;
 using WarrantyRepairLedger.Models;
@@ -74,5 +75,22 @@ public class ProductEndpointsTests : IntegrationTestBase
         Assert.True(status!.InWarranty);
         var minExpected = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(12);
         Assert.True(status.ExpiresOn >= minExpected);
+    }
+
+    [Fact]
+    public async Task DeleteProduct_RemovesProductAndAssociatedRepairs()
+    {
+        var product = await CreateProductAsync();
+        var repair = await CreateRepairAsync(product.Id);
+
+        var deleteResponse = await Client.DeleteAsync($"/products/{product.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var productResponse = await Client.GetAsync($"/products/{product.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, productResponse.StatusCode);
+
+        var repairs = await Client.GetFromJsonAsync<List<RepairResponse>>("/repairs", JsonOptions);
+        Assert.NotNull(repairs);
+        Assert.DoesNotContain(repairs!, r => r.Id == repair.Id);
     }
 }

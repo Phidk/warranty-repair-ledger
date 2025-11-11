@@ -36,10 +36,14 @@ input {
 }
 
 button {
+  --button-bg: #1d4ed8;
+  --button-border: #1d4ed8;
+  --button-color: #fff;
+  --button-hover-bg: #1e40af;
   border-radius: 0.5rem;
-  border: 1px solid #1d4ed8;
-  background-color: #1d4ed8;
-  color: #fff;
+  border: 1px solid var(--button-border);
+  background-color: var(--button-bg);
+  color: var(--button-color);
   padding: 0.5rem 1.25rem;
   cursor: pointer;
   transition: background-color 150ms ease, opacity 150ms ease;
@@ -51,12 +55,41 @@ button:disabled {
 }
 
 button:not(:disabled):hover {
-  background-color: #1e40af;
+  background-color: var(--button-hover-bg);
 }
 
-input {
+input,
+select {
   border: 1px solid #cbd5f5;
   border-radius: 0.4rem;
   padding: 0.5rem 0.75rem;
   background: #fff;
+}
+
+textarea {
+  border: 1px solid #cbd5f5;
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  font: inherit;
+  min-height: 120px;
+  resize: vertical;
+}
+
+button.button-secondary {
+  --button-bg: #fff;
+  --button-border: #cbd5f5;
+  --button-color: #0f172a;
+  --button-hover-bg: #e2e8f0;
+}
+
+button.button-danger {
+  --button-bg: #dc2626;
+  --button-border: #b91c1c;
+  --button-hover-bg: #b91c1c;
+}
+
+.button-small {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
 }
