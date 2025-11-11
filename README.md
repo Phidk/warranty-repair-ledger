@@ -11,6 +11,7 @@ Minimal local-first web app for tracking purchases, warranty windows, and repair
 - Local SQLite database; runs entirely offline
 - Swagger/OpenAPI docs for quick exploration
 - xUnit integration tests using an in-memory SQLite database
+- Warranty defaults model the Danish Sale of Goods Act two year period; the sample implementation assumes failures are on different parts, so it does not grant an additional two year term for the exact same component
 
 ## Tech Stack
 
@@ -19,55 +20,33 @@ Minimal local-first web app for tracking purchases, warranty windows, and repair
 - **Testing:** xUnit, Microsoft.AspNetCore.Mvc.Testing
 - **Tooling:** C# VS Code extension, .NET CLI
 
-## Quick Start
+## Quick Start - VS Code Dev Container only
 
-### Prerequisites
-- .NET SDK 8.x  
-- VS Code with the **C#** extension installed  
-- SQLite (optional; DB file is created automatically)
+This project is tuned for the VS Code Dev Container workflow so you never have to install .NET, SQLite, or `dotnet-ef` on your host.
 
-### 1) Clone & run
-```bash
-git clone https://github.com/<you>/warranty-repair-ledger.git
-cd warranty-repair-ledger
-dotnet restore
-dotnet build
-```
+1. **Requirements**  
+   - Docker Desktop (or another Docker Engine)  
+   - VS Code + the **Dev Containers** extension
 
-### 2) Configure connection string
-Create or edit `appsettings.Development.json`:
+2. **Open inside the container**  
+   - Clone the repo locally and run “Dev Containers: Open Folder in Container…”  
+   The `.devcontainer` image already includes .NET 8 and SQLite; a post-create script resets file permissions/cleans `bin`+`obj`, runs `dotnet restore`, `dotnet tool restore`, and applies the EF Core migration. A named Docker volume (`<repo>-data`) persists `data/ledger.db`. If you pull this repo after the container already exists, run **Dev Containers: Rebuild Container** so the script re-executes.
 
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Data Source=./data/ledger.db"
-  },
-  "Warranty": {
-    "DefaultMonths": 24
-  },
-  "AllowedHosts": "*"
-}
-```
+3. **Run the API** (inside the Dev Container terminal)  
+   ```bash
+   dotnet watch run --project WarrantyRepairLedger/WarrantyRepairLedger.csproj --urls http://0.0.0.0:8080
+   ```
+   Forwarded port 8080 will appear in the VS Code Ports panel. Click the forwarding link (or open `http://localhost:8080/swagger`) to see the Swagger UI; hitting the bare root (`/`) returns 404 because no endpoint is mapped there.
 
-### 3) Add EF Core & create database
-```bash
-dotnet tool install --global dotnet-ef
-dotnet add package Microsoft.EntityFrameworkCore.Sqlite
-dotnet add package Microsoft.EntityFrameworkCore.Design
-dotnet add package Swashbuckle.AspNetCore
-mkdir -p data
+4. **Exercise the endpoints**  
+   - Open `requests.http` in VS Code; every block already points at `http://localhost:8080`.  
+   - The Dev Container pre-installs the REST Client extension, so click “Send Request” above each block to walk the full flow: create product → search/filter → expiring soon → warranty check → create repair → advance repair → list open repairs → summary report.
 
-# Create initial migration and update DB
-dotnet ef migrations add InitialCreate
-dotnet ef database update
-```
-
-### 4) Run
-```bash
-dotnet run
-```
-- API listens on `https://localhost:7047` (or similar).  
-- Swagger UI (dev only): `https://localhost:7047/swagger`
+5. **Run the automated tests** (still inside the container)  
+   ```bash
+   dotnet test
+   ```
+   This covers warranty math, repair transitions, expiring queries, and the integration path end-to-end.
 
 ## Data Model (EF Core)
 
@@ -131,68 +110,56 @@ Indexes:
 ### Reports
 - `GET /reports/summary` – counts per status, avg days open, soon-to-expire count
 
+## Warranty assumptions
+
+- Default coverage is 24 months from purchase, aligning with the Danish Sale of Goods Act (Købeloven §§78-81) and EU directive 2019/771
+- The tracker does not capture part-level identifiers, so it assumes each repair targets a different component and therefore does not start a fresh two year clock for the same part
+
 ## Requests (REST Client)
 
-Create `requests.http` in repo root:
+`requests.http` lives at the repo root and covers the happy path:
+- create/search products
+- view expiring warranties + warranty status
+- open a repair, advance its status, and list open repairs
+- pull `/reports/summary`
 
-```http
-### Create product
-POST https://localhost:7047/products
-Content-Type: application/json
+It defaults to `http://localhost:8080`, matching the Dev Container port mapping.
 
-{
-  "name": "Phone X",
-  "brand": "Acme",
-  "serial": "SN123",
-  "purchaseDate": "2024-09-15",
-  "warrantyMonths": 24
-}
-
-### Get expiring-in-30-days
-GET https://localhost:7047/products/expiring?days=30
-
-### Open a repair
-POST https://localhost:7047/repairs
-Content-Type: application/json
-
-{
-  "productId": 1,
-  "openedAt": "2025-01-10T09:30:00Z",
-  "status": "Open",
-  "notes": "Screen flicker"
-}
-
-### Summary
-GET https://localhost:7047/reports/summary
-```
+Open the file in VS Code with the REST Client extension to run each request against your dev server.
 
 ## Testing
 
 ```bash
-# create test project once
-dotnet new xunit -n WarrantyRepairLedger.Tests
-dotnet add WarrantyRepairLedger.Tests/WarrantyRepairLedger.Tests.csproj reference WarrantyRepairLedger.csproj
-dotnet add WarrantyRepairLedger.Tests package Microsoft.AspNetCore.Mvc.Testing
-dotnet add WarrantyRepairLedger.Tests package Microsoft.EntityFrameworkCore.Sqlite
-
-# run tests
 dotnet test
 ```
+
+Tests cover:
+- warranty math edge cases (default months + expiry boundaries)
+- repair status transition rules
+- expiring-products query
+- end-to-end flow: product → repair → summary report
 
 ## Project Structure
 
 ```
-/src
-  Program.cs
-  Models/
-  Data/ (DbContext, Migrations/)
-  Endpoints/ or Controllers/
-  Services/
-  appsettings.json
-/tests
-  WarrantyRepairLedger.Tests/
-data/ (ledger.db)
-requests.http
+.
+├── WarrantyRepairLedger.sln
+├── WarrantyRepairLedger/
+│   ├── Data/
+│   ├── DTOs/
+│   ├── Endpoints/
+│   ├── Migrations/
+│   ├── Models/
+│   ├── Options/
+│   ├── Serialization/
+│   ├── Services/
+│   ├── Program.cs
+│   └── appsettings*.json
+├── tests/
+│   └── WarrantyRepairLedger.Tests/ (xUnit + WebApplicationFactory)
+├── data/ (SQLite DB lives here)
+├── requests.http
+└── .config/dotnet-tools.json (local dotnet-ef manifest)
 ```
 
 ## Roadmap
