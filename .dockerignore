@@ -1,0 +1,11 @@
+bin/
+obj/
+data/
+.git/
+.github/
+.vscode/
+.devcontainer/
+**/*.user
+**/*.swp
+**/*.suo
+TestResult*/

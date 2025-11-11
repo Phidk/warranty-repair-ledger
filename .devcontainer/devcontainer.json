@@ -1,0 +1,33 @@
+{
+  "name": "WarrantyRepairLedger DevContainer",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "NUGET_FALLBACK_PACKAGES": ""
+  },
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-data,target=${containerWorkspaceFolder}/data,type=volume"
+  ],
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "API (http://localhost:8080/swagger)"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "jmrog.vscode-nuget-package-manager",
+        "yzhang.markdown-all-in-one",
+        "ms-azuretools.vscode-docker",
+        "humao.rest-client"
+      ]
+    }
+  }
+}
