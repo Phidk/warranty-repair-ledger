@@ -10,4 +10,7 @@ TestResult*/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+**/Data/*.db
+**/Data/*.db-shm
+**/Data/*.db-wal
 **/appsettings.Development.json
