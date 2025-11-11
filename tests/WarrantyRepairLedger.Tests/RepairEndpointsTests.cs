@@ -18,7 +18,7 @@ public class RepairEndpointsTests : IntegrationTestBase
         var repair = await CreateRepairAsync(product.Id);
 
         var response = await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
-            new RepairStatusUpdateRequest(RepairStatus.Fixed));
+            new RepairStatusUpdateRequest(RepairStatus.Fixed), JsonOptions);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -30,18 +30,18 @@ public class RepairEndpointsTests : IntegrationTestBase
         var repair = await CreateRepairAsync(product.Id);
 
         var toInProgress = await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
-            new RepairStatusUpdateRequest(RepairStatus.InProgress));
+            new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
         toInProgress.EnsureSuccessStatusCode();
 
-        var updated = await toInProgress.Content.ReadFromJsonAsync<RepairResponse>();
+        var updated = await toInProgress.Content.ReadFromJsonAsync<RepairResponse>(JsonOptions);
         Assert.NotNull(updated);
         Assert.Equal(RepairStatus.InProgress, updated!.Status);
 
         var toFixed = await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
-            new RepairStatusUpdateRequest(RepairStatus.Fixed));
+            new RepairStatusUpdateRequest(RepairStatus.Fixed), JsonOptions);
         toFixed.EnsureSuccessStatusCode();
 
-        var closed = await toFixed.Content.ReadFromJsonAsync<RepairResponse>();
+        var closed = await toFixed.Content.ReadFromJsonAsync<RepairResponse>(JsonOptions);
         Assert.NotNull(closed);
         Assert.Equal(RepairStatus.Fixed, closed!.Status);
         Assert.NotNull(closed.ClosedAt);

@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using WarrantyRepairLedger.Dtos;
 using WarrantyRepairLedger.Models;
 using Xunit;
@@ -9,6 +11,7 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
 {
     protected LedgerApiFactory Factory { get; }
     protected HttpClient Client { get; private set; } = null!;
+    protected JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
 
     protected IntegrationTestBase(LedgerApiFactory factory)
     {
@@ -35,9 +38,9 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
             Retailer: "Example Store",
             Price: 499.99m);
 
-        var response = await Client.PostAsJsonAsync("/products", payload);
+        var response = await Client.PostAsJsonAsync("/products", payload, JsonOptions);
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<ProductResponse>())!;
+        return (await response.Content.ReadFromJsonAsync<ProductResponse>(JsonOptions))!;
     }
 
     // Opens a repair tied to an existing product for integration flows
@@ -50,8 +53,15 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
             Cost: null,
             Notes: "Screen flicker");
 
-        var response = await Client.PostAsJsonAsync("/repairs", request);
+        var response = await Client.PostAsJsonAsync("/repairs", request, JsonOptions);
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<RepairResponse>())!;
+        return (await response.Content.ReadFromJsonAsync<RepairResponse>(JsonOptions))!;
+    }
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
     }
 }

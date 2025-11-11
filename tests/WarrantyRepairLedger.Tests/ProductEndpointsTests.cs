@@ -39,7 +39,7 @@ public class ProductEndpointsTests : IntegrationTestBase
             Retailer: "Shop",
             Price: null));
 
-        var expiring = await Client.GetFromJsonAsync<List<ExpiringProductResponse>>("/products/expiring?days=60");
+        var expiring = await Client.GetFromJsonAsync<List<ExpiringProductResponse>>("/products/expiring?days=60", JsonOptions);
 
         Assert.NotNull(expiring);
         Assert.Equal(2, expiring!.Count);

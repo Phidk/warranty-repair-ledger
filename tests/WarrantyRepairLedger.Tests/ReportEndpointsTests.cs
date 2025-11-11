@@ -23,7 +23,7 @@ public class ReportEndpointsTests : IntegrationTestBase
 
         await CreateRepairAsync(product.Id);
 
-        var summary = await Client.GetFromJsonAsync<SummaryReportResponse>("/reports/summary");
+        var summary = await Client.GetFromJsonAsync<SummaryReportResponse>("/reports/summary", JsonOptions);
 
         Assert.NotNull(summary);
         Assert.True(summary!.CountsByStatus.TryGetValue("Open", out var openCount));
