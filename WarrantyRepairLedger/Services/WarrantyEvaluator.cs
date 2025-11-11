@@ -12,6 +12,7 @@ public class WarrantyEvaluator
         _options = options.Value;
     }
 
+    // Calculates whether a product is still covered using purchase date plus warranty months
     public WarrantyWindow Evaluate(Product product, DateOnly? referenceDate = null)
     {
         var expiresOn = GetExpirationDate(product);
@@ -24,6 +25,7 @@ public class WarrantyEvaluator
         return new WarrantyWindow(inWarranty, expiresOn, reason);
     }
 
+    // Quick helper to see if a warranty ends within an upcoming window
     public bool IsExpiringWithin(Product product, int days, DateOnly? referenceDate = null)
     {
         var expiresOn = GetExpirationDate(product);
@@ -32,6 +34,7 @@ public class WarrantyEvaluator
         return remainingDays >= 0 && remainingDays <= days;
     }
 
+    // Normalizes warranty months and returns the final expiration date
     public DateOnly GetExpirationDate(Product product)
     {
         var months = product.WarrantyMonths > 0 ? product.WarrantyMonths : _options.DefaultMonths;

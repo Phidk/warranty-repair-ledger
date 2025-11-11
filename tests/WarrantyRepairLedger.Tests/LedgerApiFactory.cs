@@ -10,18 +10,19 @@ using WarrantyRepairLedger.Data;
 
 namespace WarrantyRepairLedger.Tests;
 
-public class LedgerApiFactory : WebApplicationFactory<Program>
-{
-    private DbConnection? _connection;
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    public class LedgerApiFactory : WebApplicationFactory<Program>
     {
-        builder.UseEnvironment("Testing");
+        private DbConnection? _connection;
 
-        builder.ConfigureServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<LedgerDbContext>));
+            builder.UseEnvironment("Testing");
+
+            builder.ConfigureServices(services =>
+            {
+                // Replace the default DbContext with an in-memory SQLite connection so tests run isolated
+                var descriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(DbContextOptions<LedgerDbContext>));
 
             if (descriptor is not null)
             {

@@ -137,6 +137,7 @@ public static class RepairEndpoints
         return errors;
     }
 
+    // Enforces the simple state machine Open -> InProgress -> Fixed or Rejected
     private static bool IsValidTransition(RepairStatus current, RepairStatus next, out string message)
     {
         message = string.Empty;

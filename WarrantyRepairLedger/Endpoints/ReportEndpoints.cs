@@ -21,6 +21,7 @@ public static class ReportEndpoints
         WarrantyEvaluator evaluator,
         CancellationToken cancellationToken)
     {
+        // Pull all repairs for lightweight aggregation (counts and average open days)
         var repairs = await dbContext.Repairs
             .AsNoTracking()
             .ToListAsync(cancellationToken);

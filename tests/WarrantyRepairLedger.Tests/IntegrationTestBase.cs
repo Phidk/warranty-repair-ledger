@@ -23,6 +23,7 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
 
     public virtual Task DisposeAsync() => Task.CompletedTask;
 
+    // Helper that hides the boilerplate payloads for most product scenarios
     protected async Task<ProductResponse> CreateProductAsync(ProductCreateRequest? request = null)
     {
         var payload = request ?? new ProductCreateRequest(
@@ -39,6 +40,7 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
         return (await response.Content.ReadFromJsonAsync<ProductResponse>())!;
     }
 
+    // Opens a repair tied to an existing product for integration flows
     protected async Task<RepairResponse> CreateRepairAsync(int productId, RepairStatus status = RepairStatus.Open)
     {
         var request = new RepairCreateRequest(
