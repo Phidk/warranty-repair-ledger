@@ -40,19 +40,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
-    var allowedOrigins = new[]
-    {
-        "http://localhost:5173",
-        "https://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "https://localhost:4173",
-        "http://127.0.0.1:4173",
-    };
-
     options.AddPolicy(CorsPolicyName, policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy
+            .SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                {
+                    return false;
+                }
+
+                return Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                    && (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                        || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase));
+            })
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
