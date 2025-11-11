@@ -12,6 +12,7 @@ Minimal local-first web app for tracking purchases, warranty windows, and repair
 - Swagger/OpenAPI docs for quick exploration
 - xUnit integration tests using an in-memory SQLite database
 - Warranty defaults model the Danish Sale of Goods Act two year period; the sample implementation assumes failures are on different parts, so it does not grant an additional two year term for the exact same component
+- When a consumer explicitly opts for repair under the 2024 EU “Right to Repair” amendment to Directive (EU) 2019/771, completed repairs extend the legal guarantee by 12 months
 
 ## Tech Stack
 
@@ -101,7 +102,8 @@ Indexes:
     "productId": 1,
     "openedAt": "2025-01-10T09:30:00Z",
     "status": "Open",
-    "notes": "Screen flicker"
+    "notes": "Screen flicker",
+    "consumerOptedForRepair": true
   }
   ```
 - `PATCH /repairs/{id}` – transition status (`Open -> InProgress -> Fixed|Rejected`)
@@ -120,6 +122,7 @@ Indexes:
 
 - Default coverage is 24 months from purchase, aligning with the Danish Sale of Goods Act (Købeloven §§78-81) and EU directive 2019/771
 - The tracker does not capture part-level identifiers, so it assumes each repair targets a different component and therefore does not start a fresh two year clock for the same part
+- If a consumer chooses repair (instead of replacement) for an in-warranty defect, mark the repair with `consumerOptedForRepair: true`. Once the repair is marked as `Fixed`, the legal guarantee is extended to at least 12 months from that completion date per the 2024 Right to Repair amendment to Directive (EU) 2019/771.
 
 ## Requests (REST Client)
 

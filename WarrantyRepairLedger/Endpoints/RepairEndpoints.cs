@@ -49,7 +49,8 @@ public static class RepairEndpoints
             Status = RepairStatus.Open,
             OpenedAt = request.OpenedAt ?? DateTimeOffset.UtcNow,
             Cost = request.Cost,
-            Notes = request.Notes?.Trim()
+            Notes = request.Notes?.Trim(),
+            ConsumerOptedForRepair = request.ConsumerOptedForRepair
         };
 
         dbContext.Repairs.Add(repair);

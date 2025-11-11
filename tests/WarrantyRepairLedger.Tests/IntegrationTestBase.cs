@@ -44,14 +44,18 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
     }
 
     // Opens a repair tied to an existing product for integration flows
-    protected async Task<RepairResponse> CreateRepairAsync(int productId, RepairStatus status = RepairStatus.Open)
+    protected async Task<RepairResponse> CreateRepairAsync(
+        int productId,
+        RepairStatus status = RepairStatus.Open,
+        bool consumerOptedForRepair = false)
     {
         var request = new RepairCreateRequest(
             ProductId: productId,
             OpenedAt: DateTimeOffset.UtcNow,
             Status: status,
             Cost: null,
-            Notes: "Screen flicker");
+            Notes: "Screen flicker",
+            ConsumerOptedForRepair: consumerOptedForRepair);
 
         var response = await Client.PostAsJsonAsync("/repairs", request, JsonOptions);
         response.EnsureSuccessStatusCode();

@@ -10,7 +10,8 @@ public record RepairCreateRequest(
     RepairStatus? Status,
     [property: Range(0, double.MaxValue, ErrorMessage = "Cost cannot be negative.")]
     decimal? Cost,
-    string? Notes);
+    string? Notes,
+    bool ConsumerOptedForRepair = false);
 
 public record RepairStatusUpdateRequest(
     [property: Required(ErrorMessage = "Status is required.")]
@@ -23,7 +24,8 @@ public record RepairResponse(
     DateTimeOffset OpenedAt,
     DateTimeOffset? ClosedAt,
     decimal? Cost,
-    string? Notes)
+    string? Notes,
+    bool ConsumerOptedForRepair)
 {
     public static RepairResponse FromEntity(Repair repair) =>
         new(
@@ -33,7 +35,8 @@ public record RepairResponse(
             repair.OpenedAt,
             repair.ClosedAt,
             repair.Cost,
-            repair.Notes);
+            repair.Notes,
+            repair.ConsumerOptedForRepair);
 }
 
 public record SummaryReportResponse(

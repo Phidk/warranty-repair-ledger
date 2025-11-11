@@ -110,6 +110,7 @@ public static class ProductEndpoints
     {
         var product = await dbContext.Products
             .AsNoTracking()
+            .Include(p => p.Repairs)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (product is null)
@@ -117,7 +118,7 @@ public static class ProductEndpoints
             return TypedResults.NotFound();
         }
 
-        var window = evaluator.Evaluate(product);
+        var window = evaluator.Evaluate(product, repairs: product.Repairs);
         var response = new WarrantyStatusResponse(window.InWarranty, window.ExpiresOn, window.Reason);
 
         return TypedResults.Ok(response);
@@ -142,13 +143,14 @@ public static class ProductEndpoints
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var products = await dbContext.Products
             .AsNoTracking()
+            .Include(p => p.Repairs)
             .ToListAsync(cancellationToken);
 
         var expiring = products
-            .Where(p => evaluator.IsExpiringWithin(p, threshold, today))
+            .Where(p => evaluator.IsExpiringWithin(p, threshold, today, p.Repairs))
             .Select(p =>
             {
-                var expiresOn = evaluator.GetExpirationDate(p);
+                var expiresOn = evaluator.GetExpirationDate(p, p.Repairs);
                 var remaining = Math.Max(0, expiresOn.DayNumber - today.DayNumber);
                 return new ExpiringProductResponse(ProductResponse.FromEntity(p), remaining);
             })

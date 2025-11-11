@@ -17,4 +17,9 @@ public class Repair
     public decimal? Cost { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Indicates the consumer explicitly chose repair under the legal guarantee, unlocking the EU right-to-repair extension.
+    /// </summary>
+    public bool ConsumerOptedForRepair { get; set; }
 }

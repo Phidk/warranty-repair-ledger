@@ -42,9 +42,10 @@ public static class ReportEndpoints
 
         var products = await dbContext.Products
             .AsNoTracking()
+            .Include(p => p.Repairs)
             .ToListAsync(cancellationToken);
 
-        var expiringSoon = products.Count(p => evaluator.IsExpiringWithin(p, 30));
+        var expiringSoon = products.Count(p => evaluator.IsExpiringWithin(p, 30, repairs: p.Repairs));
 
         var response = new SummaryReportResponse(counts, averageDaysOpen, expiringSoon);
         return TypedResults.Ok(response);

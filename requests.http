@@ -33,7 +33,8 @@ Content-Type: {{contentType}}
   "productId": 1,
   "openedAt": "{{$datetime iso8601}}",
   "status": "Open",
-  "notes": "Screen flicker"
+  "notes": "Screen flicker",
+  "consumerOptedForRepair": true
 }
 
 ### Advance repair to InProgress
