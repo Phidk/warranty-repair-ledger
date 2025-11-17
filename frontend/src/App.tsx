@@ -124,7 +124,6 @@ function App() {
         const repairsData = await fetchRepairs(appliedFilter === 'All' ? undefined : appliedFilter)
         setRepairs(repairsData)
         setRepairError(null)
-        setRepairStatusFilter((prev) => (prev === appliedFilter ? prev : appliedFilter))
       } catch (err) {
         const message =
           err instanceof ApiError ? err.message : 'Unable to load repairs. Check the API logs for details.'
@@ -222,6 +221,7 @@ function App() {
       return
     }
 
+    setRepairStatusFilter(nextFilter)
     await loadRepairs(nextFilter, 'refresh')
   }
 

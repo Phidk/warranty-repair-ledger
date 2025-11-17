@@ -65,7 +65,8 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
     private static JsonSerializerOptions CreateJsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        // Mirror the API's PascalCase enums; camelCase kept the UI from showing status buttons.
+        options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }
 }

@@ -1,55 +1,74 @@
 # Change @host to https://localhost:7047 if you're running `dotnet run` directly.
 @host = http://localhost:8080
 @contentType = application/json
+@serial = R2R-{{$timestamp}}
 
-### Create product
+### 1) Create a fresh product (unique serial via {{$timestamp}})
 POST {{host}}/products
 Content-Type: {{contentType}}
 
 {
-  "name": "Phone X",
-  "brand": "Acme",
-  "serial": "SN-{{$timestamp}}",
-  "purchaseDate": "2024-01-15",
+  "name": "Right-to-Repair Blender",
+  "brand": "KitchenCo",
+  "serial": "{{serial}}",
+  "purchaseDate": "2024-03-01",
   "warrantyMonths": 24,
   "retailer": "Example Store",
-  "price": 499.99
+  "price": 249.50
 }
 
-### List products (search by query)
-GET {{host}}/products?q=SN
+> {% client.global.set("productId", response.body.id); %}
+> {% client.global.set("productSerial", response.body.serial); %}
 
-### Products expiring within 45 days
+### 2) Query products by the exact serial we just saved
+GET {{host}}/products?q={{productSerial}}
+
+### 3) Fetch warranty status (should be in warranty right after purchase)
+GET {{host}}/products/{{productId}}/in-warranty
+
+### 4) Check expiring products (45 day window snapshot)
 GET {{host}}/products/expiring?days=45
 
-### Check warranty status
-GET {{host}}/products/1/in-warranty
-
-### Delete product
-DELETE {{host}}/products/1
-
-### Create repair
+### 5) Open a repair with Right-to-Repair consent
 POST {{host}}/repairs
 Content-Type: {{contentType}}
 
 {
-  "productId": 1,
+  "productId": {{productId}},
   "openedAt": "{{$datetime iso8601}}",
-  "status": "Open",
-  "notes": "Screen flicker",
+  "notes": "Motor stalls when blending frozen fruit",
   "consumerOptedForRepair": true
 }
 
-### Advance repair to InProgress
-PATCH {{host}}/repairs/1
+> {% client.global.set("repairId", response.body.id); %}
+
+### 6) List open repairs (new case should appear here)
+GET {{host}}/repairs?status=Open
+
+### 7) Advance repair to InProgress
+PATCH {{host}}/repairs/{{repairId}}
 Content-Type: {{contentType}}
 
 {
   "status": "InProgress"
 }
 
-### List open repairs
-GET {{host}}/repairs?status=Open
+### 8) Complete the repair (mark as Fixed to trigger the warranty extension)
+PATCH {{host}}/repairs/{{repairId}}
+Content-Type: {{contentType}}
 
-### Summary report
+{
+  "status": "Fixed"
+}
+
+### 9) Fetch summary report (counts & averages now include this repair)
 GET {{host}}/reports/summary
+
+### 10) Re-check warranty status (fixed repairs with consent earn an extra 12 months)
+GET {{host}}/products/{{productId}}/in-warranty
+
+### 11) Clean up: delete the demo product (cascades repairs for repeatable runs)
+DELETE {{host}}/products/{{productId}}
+
+### 12) Confirm the product no longer exists under that serial
+GET {{host}}/products?q={{productSerial}}
