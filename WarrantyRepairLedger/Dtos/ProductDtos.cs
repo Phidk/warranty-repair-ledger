@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using WarrantyRepairLedger.Models;
 
 namespace WarrantyRepairLedger.Dtos;
@@ -30,9 +31,10 @@ public record ProductResponse(
     DateOnly PurchaseDate,
     int WarrantyMonths,
     string? Retailer,
-    decimal? Price)
+    decimal? Price,
+    bool PreviouslyFixed)
 {
-    public static ProductResponse FromEntity(Product product) =>
+    public static ProductResponse FromEntity(Product product, bool previouslyFixed = false) =>
         new(
             product.Id,
             product.Name,
@@ -41,7 +43,8 @@ public record ProductResponse(
             product.PurchaseDate,
             product.WarrantyMonths,
             product.Retailer,
-            product.Price);
+            product.Price,
+            previouslyFixed);
 }
 
 public record ExpiringProductResponse(ProductResponse Product, int DaysRemaining);

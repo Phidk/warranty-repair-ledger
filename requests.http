@@ -29,15 +29,14 @@ GET {{host}}/products/{{productId}}/in-warranty
 ### 4) Check expiring products (45 day window snapshot)
 GET {{host}}/products/expiring?days=45
 
-### 5) Open a repair with Right-to-Repair consent
+### 5) Open a repair (auto extension if opened while covered)
 POST {{host}}/repairs
 Content-Type: {{contentType}}
 
 {
   "productId": {{productId}},
   "openedAt": "{{$datetime iso8601}}",
-  "notes": "Motor stalls when blending frozen fruit",
-  "consumerOptedForRepair": true
+  "notes": "Motor stalls when blending frozen fruit"
 }
 
 > {% client.global.set("repairId", response.body.id); %}
@@ -64,7 +63,7 @@ Content-Type: {{contentType}}
 ### 9) Fetch summary report (counts & averages now include this repair)
 GET {{host}}/reports/summary
 
-### 10) Re-check warranty status (fixed repairs with consent earn an extra 12 months)
+### 10) Re-check warranty status (repairs opened while covered and fixed later add 12 months)
 GET {{host}}/products/{{productId}}/in-warranty
 
 ### 11) Clean up: delete the demo product (cascades repairs for repeatable runs)

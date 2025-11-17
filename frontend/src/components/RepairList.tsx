@@ -151,7 +151,6 @@ const RepairList = ({
                     <td>
                       <div className="repair-status">
                         <span className={`tag ${statusTagClass(repair.status)}`}>{repair.status}</span>
-                        {repair.consumerOptedForRepair && <p className="repair-meta">Right to Repair extension</p>}
                       </div>
                     </td>
                     <td>

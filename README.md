@@ -91,7 +91,7 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutput=./TestResults/coverage/ /p
 
 ```
 Product: Id, Name, Brand, Serial (unique), PurchaseDate, WarrantyMonths (default 24), Retailer, Price?
-Repair: Id, ProductId (FK), OpenedAt, ClosedAt?, Status (Open|InProgress|Fixed|Rejected), Cost?, Notes, ConsumerOptedForRepair?
+Repair: Id, ProductId (FK), OpenedAt, ClosedAt?, Status (Open|InProgress|Fixed|Rejected), Cost?, Notes
 Indexes: IX_Product_Serial (unique), IX_Repair_ProductId_Status
 ```
 
@@ -112,7 +112,7 @@ DTOs use data annotations (e.g., `[Required]`, `[Range]`). Invalid payloads retu
 ## Warranty assumptions
 
 - Default coverage: **24 months** from purchase (Danish/EU legal guarantee).
-- If a consumer **opts for repair** (not replacement) during the warranty, completed repairs extend the legal guarantee by **12 months** (Right-to-Repair, 2024).
+- Any repair completed (status **Fixed**) while the product is still covered automatically extends the legal guarantee by **12 months** (Right-to-Repair, 2024). No manual consent checkbox required.
 - The tracker doesn't model component-level identities; it assumes distinct components across repairs (so it does not restart a fresh 24-month clock for the same exact part).
 - **Replacement not modelled:** Under Danish rules, if a seller replaces a defective item ("omlevering"), the consumer normally gets a new two-year complaint period from the replacement date. This ledger does not attempt to track that automatically; treat a full replacement as a new product entry with its own purchase date/warranty window.
 

@@ -64,22 +64,22 @@ namespace WarrantyRepairLedger.Tests;
     }
 
     [Fact]
-    public void GetExpirationDate_ExtendsWhenConsumerChoseRepair()
+    public void GetExpirationDate_ExtendsWhenRepairCompletesWithinCoverage()
     {
-        var closedAt = DateTimeOffset.UtcNow.AddDays(-5);
+        var openedAt = DateTimeOffset.UtcNow.AddMonths(-3);
+        var closedAt = DateTimeOffset.UtcNow.AddMonths(-1);
         var product = new Product
         {
             Name = "Console",
             Serial = "XYZ789",
-            PurchaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-30)),
+            PurchaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-26)),
             WarrantyMonths = 24,
             Repairs = new List<Repair>
             {
                 new()
                 {
-                    ConsumerOptedForRepair = true,
                     Status = RepairStatus.Fixed,
-                    OpenedAt = closedAt.AddDays(-10),
+                    OpenedAt = openedAt,
                     ClosedAt = closedAt
                 }
             }
@@ -87,33 +87,32 @@ namespace WarrantyRepairLedger.Tests;
 
         var expiresOn = _evaluator.GetExpirationDate(product);
 
-        var expected = DateOnly.FromDateTime(closedAt.UtcDateTime).AddMonths(12);
-        Assert.Equal(expected, expiresOn);
+        var expectedExtension = DateOnly.FromDateTime(closedAt.UtcDateTime).AddMonths(12);
+        Assert.Equal(expectedExtension, expiresOn);
     }
 
     [Fact]
-    public void GetExpirationDate_IgnoresRepairsWithoutExtension()
+    public void GetExpirationDate_IgnoresRepairsCompletedAfterCoverage()
     {
         var product = new Product
         {
             Name = "Speaker",
             Serial = "SPEAK1",
-            PurchaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-10)),
-            WarrantyMonths = 12,
+            PurchaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-30)),
+            WarrantyMonths = 24,
             Repairs = new List<Repair>
             {
                 new()
                 {
-                    ConsumerOptedForRepair = false,
                     Status = RepairStatus.Fixed,
-                    OpenedAt = DateTimeOffset.UtcNow.AddDays(-20),
-                    ClosedAt = DateTimeOffset.UtcNow.AddDays(-10)
+                    OpenedAt = DateTimeOffset.UtcNow.AddDays(-40),
+                    ClosedAt = DateTimeOffset.UtcNow.AddDays(-5)
                 }
             }
         };
 
         var expiresOn = _evaluator.GetExpirationDate(product);
 
-        Assert.Equal(product.PurchaseDate.AddMonths(12), expiresOn);
+        Assert.Equal(product.PurchaseDate.AddMonths(24), expiresOn);
     }
 }

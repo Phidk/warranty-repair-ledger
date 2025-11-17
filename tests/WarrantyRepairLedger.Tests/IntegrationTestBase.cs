@@ -47,15 +47,14 @@ public abstract class IntegrationTestBase : IClassFixture<LedgerApiFactory>, IAs
     protected async Task<RepairResponse> CreateRepairAsync(
         int productId,
         RepairStatus status = RepairStatus.Open,
-        bool consumerOptedForRepair = false)
+        DateTimeOffset? openedAt = null)
     {
         var request = new RepairCreateRequest(
             ProductId: productId,
-            OpenedAt: DateTimeOffset.UtcNow,
+            OpenedAt: openedAt ?? DateTimeOffset.UtcNow,
             Status: status,
             Cost: null,
-            Notes: "Screen flicker",
-            ConsumerOptedForRepair: consumerOptedForRepair);
+            Notes: "Screen flicker");
 
         var response = await Client.PostAsJsonAsync("/repairs", request, JsonOptions);
         response.EnsureSuccessStatusCode();

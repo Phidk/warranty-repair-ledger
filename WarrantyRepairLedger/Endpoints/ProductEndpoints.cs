@@ -7,6 +7,7 @@ using WarrantyRepairLedger.Filters;
 using WarrantyRepairLedger.Models;
 using WarrantyRepairLedger.Options;
 using WarrantyRepairLedger.Services;
+using System.Linq;
 
 namespace WarrantyRepairLedger.Endpoints;
 
@@ -68,9 +69,13 @@ public static class ProductEndpoints
     private static async Task<Results<Ok<IEnumerable<ProductResponse>>, ValidationProblem>> GetProducts(
         string? q,
         LedgerDbContext dbContext,
+        WarrantyEvaluator evaluator,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.Products.AsNoTracking();
+        var query = dbContext.Products
+            .AsNoTracking()
+            .Include(p => p.Repairs)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -84,23 +89,38 @@ public static class ProductEndpoints
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
 
-        var responses = products.Select(ProductResponse.FromEntity);
+        var responses = products.Select(p =>
+        {
+            var baseExpiration = evaluator.GetExpirationDate(p, Enumerable.Empty<Repair>());
+            var extendedExpiration = evaluator.GetExpirationDate(p, p.Repairs);
+            var previouslyFixed = extendedExpiration > baseExpiration;
+            return ProductResponse.FromEntity(p, previouslyFixed);
+        });
 
-        return TypedResults.Ok(responses);
+        return TypedResults.Ok<IEnumerable<ProductResponse>>(responses);
     }
 
     private static async Task<Results<Ok<ProductResponse>, NotFound>> GetProduct(
         int id,
         LedgerDbContext dbContext,
+        WarrantyEvaluator evaluator,
         CancellationToken cancellationToken)
     {
         var product = await dbContext.Products
             .AsNoTracking()
+            .Include(p => p.Repairs)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-        return product is null
-            ? TypedResults.NotFound()
-            : TypedResults.Ok(ProductResponse.FromEntity(product));
+        if (product is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var baseExpiration = evaluator.GetExpirationDate(product, Enumerable.Empty<Repair>());
+        var extendedExpiration = evaluator.GetExpirationDate(product, product.Repairs);
+        var previouslyFixed = extendedExpiration > baseExpiration;
+
+        return TypedResults.Ok(ProductResponse.FromEntity(product, previouslyFixed));
     }
 
     private static async Task<Results<Ok<WarrantyStatusResponse>, NotFound>> GetWarrantyStatus(
@@ -172,7 +192,9 @@ public static class ProductEndpoints
             {
                 var expiresOn = evaluator.GetExpirationDate(p, p.Repairs);
                 var remaining = Math.Max(0, expiresOn.DayNumber - today.DayNumber);
-                return new ExpiringProductResponse(ProductResponse.FromEntity(p), remaining);
+                var baseExpiration = evaluator.GetExpirationDate(p, Enumerable.Empty<Repair>());
+                var previouslyFixed = expiresOn > baseExpiration;
+                return new ExpiringProductResponse(ProductResponse.FromEntity(p, previouslyFixed), remaining);
             })
             .OrderBy(x => x.DaysRemaining)
             .ThenBy(x => x.Product.Name)

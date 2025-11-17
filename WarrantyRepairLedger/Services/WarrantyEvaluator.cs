@@ -41,18 +41,19 @@ public class WarrantyEvaluator
         var months = product.WarrantyMonths > 0 ? product.WarrantyMonths : _options.DefaultMonths;
         var expiresOn = product.PurchaseDate.AddMonths(months);
 
-        var relevantRepairs = repairs
-            ?? product.Repairs
-            ?? Enumerable.Empty<Repair>();
+        var relevantRepairs = (repairs ?? product.Repairs ?? Enumerable.Empty<Repair>())
+            .Where(r => r.Status == RepairStatus.Fixed && r.ClosedAt is not null)
+            .OrderBy(r => r.OpenedAt);
 
         foreach (var repair in relevantRepairs)
         {
-            if (!repair.ConsumerOptedForRepair || repair.Status != RepairStatus.Fixed || repair.ClosedAt is null)
+            var openedDate = DateOnly.FromDateTime(repair.OpenedAt.UtcDateTime);
+            if (openedDate > expiresOn)
             {
                 continue;
             }
 
-            var closedDate = DateOnly.FromDateTime(repair.ClosedAt.Value.UtcDateTime);
+            var closedDate = DateOnly.FromDateTime(repair.ClosedAt!.Value.UtcDateTime);
             var extensionExpiresOn = closedDate.AddMonths(_options.RepairExtensionMonths);
             if (extensionExpiresOn > expiresOn)
             {

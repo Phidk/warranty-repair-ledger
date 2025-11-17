@@ -70,9 +70,6 @@ namespace WarrantyRepairLedger.Migrations
                     b.Property<DateTimeOffset?>("ClosedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("ConsumerOptedForRepair")
-                        .HasColumnType("INTEGER");
-
                     b.Property<decimal?>("Cost")
                         .HasPrecision(12, 2)
                         .HasColumnType("TEXT");

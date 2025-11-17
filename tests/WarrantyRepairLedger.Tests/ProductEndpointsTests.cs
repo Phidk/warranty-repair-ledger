@@ -52,15 +52,15 @@ public class ProductEndpointsTests : IntegrationTestBase
     public async Task WarrantyStatus_ReflectsRightToRepairExtension()
     {
         var product = await CreateProductAsync(new ProductCreateRequest(
-            Name: "Aged Phone",
+            Name: "Covered Phone",
             Serial: "SN-" + Guid.NewGuid(),
-            PurchaseDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-30)),
+            PurchaseDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-26)),
             WarrantyMonths: 24,
             Brand: "Acme",
             Retailer: "Shop",
             Price: null));
 
-        var repair = await CreateRepairAsync(product.Id, consumerOptedForRepair: true);
+        var repair = await CreateRepairAsync(product.Id, openedAt: DateTimeOffset.UtcNow.AddMonths(-3));
 
         await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
             new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
@@ -73,15 +73,50 @@ public class ProductEndpointsTests : IntegrationTestBase
 
         Assert.NotNull(status);
         Assert.True(status!.InWarranty);
-        var minExpected = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(12);
+        var minExpected = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(11);
         Assert.True(status.ExpiresOn >= minExpected);
+    }
+
+    [Fact]
+    public async Task WarrantyStatus_DoesNotExtendForRepairsAfterCoverage()
+    {
+        var product = await CreateProductAsync(new ProductCreateRequest(
+            Name: "Expired Phone",
+            Serial: "SN-" + Guid.NewGuid(),
+            PurchaseDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-30)),
+            WarrantyMonths: 24,
+            Brand: "Acme",
+            Retailer: "Shop",
+            Price: null));
+
+        var repair = await CreateRepairAsync(product.Id);
+
+        await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
+            new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
+        var closure = await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
+            new RepairStatusUpdateRequest(RepairStatus.Fixed), JsonOptions);
+        closure.EnsureSuccessStatusCode();
+
+        var status = await Client.GetFromJsonAsync<WarrantyStatusResponse>(
+            $"/products/{product.Id}/in-warranty", JsonOptions);
+
+        Assert.NotNull(status);
+        Assert.False(status!.InWarranty);
+        Assert.Equal(product.PurchaseDate.AddMonths(24), status.ExpiresOn);
     }
 
     [Fact]
     public async Task DeleteProduct_RemovesProductAndAssociatedRepairs()
     {
-        var product = await CreateProductAsync();
-        var repair = await CreateRepairAsync(product.Id);
+        var product = await CreateProductAsync(new ProductCreateRequest(
+            Name: "Legacy Washer",
+            Serial: "SN-" + Guid.NewGuid(),
+            PurchaseDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-30)),
+            WarrantyMonths: 24,
+            Brand: "Acme",
+            Retailer: "Shop",
+            Price: null));
+        var repair = await CreateRepairAsync(product.Id, openedAt: DateTimeOffset.UtcNow.AddMonths(-2));
 
         var deleteResponse = await Client.DeleteAsync($"/products/{product.Id}");
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
@@ -92,5 +127,21 @@ public class ProductEndpointsTests : IntegrationTestBase
         var repairs = await Client.GetFromJsonAsync<List<RepairResponse>>("/repairs", JsonOptions);
         Assert.NotNull(repairs);
         Assert.DoesNotContain(repairs!, r => r.Id == repair.Id);
+    }
+
+    [Fact]
+    public async Task ProductList_FlagsPreviouslyFixedItems()
+    {
+        var product = await CreateProductAsync();
+        var repair = await CreateRepairAsync(product.Id);
+
+        await Client.PatchAsJsonAsync($"/repairs/{repair.Id}", new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
+        var finalize = await Client.PatchAsJsonAsync($"/repairs/{repair.Id}", new RepairStatusUpdateRequest(RepairStatus.Fixed), JsonOptions);
+        finalize.EnsureSuccessStatusCode();
+
+        var products = await Client.GetFromJsonAsync<List<ProductResponse>>("/products", JsonOptions);
+        Assert.NotNull(products);
+        var target = Assert.Single(products!, p => p.Id == product.Id);
+        Assert.True(target.PreviouslyFixed);
     }
 }

@@ -5,7 +5,6 @@ import type { CreateRepairPayload, Product } from '../api'
 const createInitialState = () => ({
   productId: '',
   notes: '',
-  consumerOptedForRepair: false,
 })
 
 type FormState = ReturnType<typeof createInitialState>
@@ -30,10 +29,6 @@ const RepairForm = ({ products, isSubmitting, onCreate, serverError, successMess
     setFormState((prev) => ({ ...prev, notes: event.target.value }))
   }
 
-  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setFormState((prev) => ({ ...prev, consumerOptedForRepair: event.target.checked }))
-  }
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setTouched(true)
@@ -44,7 +39,6 @@ const RepairForm = ({ products, isSubmitting, onCreate, serverError, successMess
 
     const payload: CreateRepairPayload = {
       productId: Number(formState.productId),
-      consumerOptedForRepair: formState.consumerOptedForRepair,
     }
 
     if (formState.notes.trim()) {
@@ -57,7 +51,6 @@ const RepairForm = ({ products, isSubmitting, onCreate, serverError, successMess
       setFormState((prev) => ({
         productId: prev.productId,
         notes: '',
-        consumerOptedForRepair: false,
       }))
     }
   }
@@ -90,11 +83,6 @@ const RepairForm = ({ products, isSubmitting, onCreate, serverError, successMess
           />
         </label>
       </div>
-
-      <label className="checkbox-field">
-        <input type="checkbox" checked={formState.consumerOptedForRepair} onChange={handleCheckboxChange} />
-        Consumer opted for repair under the Right to Repair rules
-      </label>
 
       {!hasProducts && <p className="form-hint warning">Add a product first to open a repair.</p>}
       {showValidationWarning && <p className="form-hint warning">Choose a product to continue.</p>}

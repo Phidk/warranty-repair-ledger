@@ -18,6 +18,7 @@ export interface Product {
   warrantyMonths: number;
   retailer?: string | null;
   price?: number | null;
+  previouslyFixed: boolean;
 }
 
 export interface CreateProductPayload {
@@ -57,7 +58,6 @@ export interface Repair {
   closedAt?: string | null;
   cost?: number | null;
   notes?: string | null;
-  consumerOptedForRepair: boolean;
 }
 
 export interface CreateRepairPayload {
@@ -65,7 +65,6 @@ export interface CreateRepairPayload {
   openedAt?: string;
   cost?: number;
   notes?: string;
-  consumerOptedForRepair?: boolean;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

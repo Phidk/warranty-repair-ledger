@@ -109,6 +109,7 @@ const ProductList = ({
                 <th>Brand</th>
                 <th>Purchase date</th>
                 <th>Warranty (months)</th>
+                <th>Previously fixed</th>
                 <th>Retailer</th>
                 <th>Price</th>
                 <th>Warranty status</th>
@@ -132,6 +133,7 @@ const ProductList = ({
                     <td>{product.brand ?? '--'}</td>
                     <td>{formatDate(product.purchaseDate)}</td>
                     <td>{product.warrantyMonths}</td>
+                    <td>{product.previouslyFixed ? 'Yes' : 'No'}</td>
                     <td>{product.retailer ?? '--'}</td>
                     <td>{formatPrice(product.price)}</td>
                     <td>
