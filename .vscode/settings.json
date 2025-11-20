@@ -1,3 +1,4 @@
 {
-  "remote.autoForwardPortsUseLocalPorts": true
+  "remote.autoForwardPortsUseLocalPorts": true,
+  "rest-client.enableScriptExecution": true
 }

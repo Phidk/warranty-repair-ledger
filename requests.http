@@ -4,6 +4,7 @@
 @serial = R2R-{{$timestamp}}
 
 ### 1) Create a fresh product (unique serial via {{$timestamp}})
+# @name createProduct
 POST {{host}}/products
 Content-Type: {{contentType}}
 
@@ -17,35 +18,31 @@ Content-Type: {{contentType}}
   "price": 249.50
 }
 
-> {% client.global.set("productId", response.body.id); %}
-> {% client.global.set("productSerial", response.body.serial); %}
-
 ### 2) Query products by the exact serial we just saved
-GET {{host}}/products?q={{productSerial}}
+GET {{host}}/products?q={{createProduct.response.body.$.serial}}
 
 ### 3) Fetch warranty status (should be in warranty right after purchase)
-GET {{host}}/products/{{productId}}/in-warranty
+GET {{host}}/products/{{createProduct.response.body.$.id}}/in-warranty
 
 ### 4) Check expiring products (45 day window snapshot)
 GET {{host}}/products/expiring?days=45
 
 ### 5) Open a repair (auto extension if opened while covered)
+# @name createRepair
 POST {{host}}/repairs
 Content-Type: {{contentType}}
 
 {
-  "productId": {{productId}},
+  "productId": {{createProduct.response.body.$.id}},
   "openedAt": "{{$datetime iso8601}}",
   "notes": "Motor stalls when blending frozen fruit"
 }
-
-> {% client.global.set("repairId", response.body.id); %}
 
 ### 6) List open repairs (new case should appear here)
 GET {{host}}/repairs?status=Open
 
 ### 7) Advance repair to InProgress
-PATCH {{host}}/repairs/{{repairId}}
+PATCH {{host}}/repairs/{{createRepair.response.body.$.id}}
 Content-Type: {{contentType}}
 
 {
@@ -53,7 +50,7 @@ Content-Type: {{contentType}}
 }
 
 ### 8) Complete the repair (mark as Fixed to trigger the warranty extension)
-PATCH {{host}}/repairs/{{repairId}}
+PATCH {{host}}/repairs/{{createRepair.response.body.$.id}}
 Content-Type: {{contentType}}
 
 {
@@ -64,10 +61,10 @@ Content-Type: {{contentType}}
 GET {{host}}/reports/summary
 
 ### 10) Re-check warranty status (repairs opened while covered and fixed later add 12 months)
-GET {{host}}/products/{{productId}}/in-warranty
+GET {{host}}/products/{{createProduct.response.body.$.id}}/in-warranty
 
 ### 11) Clean up: delete the demo product (cascades repairs for repeatable runs)
-DELETE {{host}}/products/{{productId}}
+DELETE {{host}}/products/{{createProduct.response.body.$.id}}
 
 ### 12) Confirm the product no longer exists under that serial
-GET {{host}}/products?q={{productSerial}}
+GET {{host}}/products?q={{createProduct.response.body.$.serial}}
