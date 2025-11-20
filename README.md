@@ -24,7 +24,7 @@ This project keeps that bookkeeping boring on purpose: a local first API, a help
 - **Swagger/OpenAPI** for exploration
 - **Integration tests** with xUnit + `WebApplicationFactory`
 - Optional **Vite + React** helper UI to poke at the API without REST tooling
-
+# 
 ## Quick start
 
 ### A) Docker Compose (fastest)
