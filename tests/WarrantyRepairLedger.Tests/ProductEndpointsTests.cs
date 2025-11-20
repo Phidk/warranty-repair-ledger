@@ -54,13 +54,15 @@ public class ProductEndpointsTests : IntegrationTestBase
         var product = await CreateProductAsync(new ProductCreateRequest(
             Name: "Covered Phone",
             Serial: "SN-" + Guid.NewGuid(),
-            PurchaseDate: DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-26)),
+            PurchaseDate: new DateOnly(2026, 8, 1),
             WarrantyMonths: 24,
             Brand: "Acme",
             Retailer: "Shop",
             Price: null));
 
-        var repair = await CreateRepairAsync(product.Id, openedAt: DateTimeOffset.UtcNow.AddMonths(-3));
+        var repair = await CreateRepairAsync(
+            product.Id,
+            openedAt: new DateTimeOffset(new DateTime(2027, 2, 1), TimeSpan.Zero));
 
         await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
             new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
@@ -73,8 +75,8 @@ public class ProductEndpointsTests : IntegrationTestBase
 
         Assert.NotNull(status);
         Assert.True(status!.InWarranty);
-        var minExpected = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(11);
-        Assert.True(status.ExpiresOn >= minExpected);
+        var expected = product.PurchaseDate.AddMonths(24 + 12);
+        Assert.Equal(expected, status.ExpiresOn);
     }
 
     [Fact]
@@ -89,7 +91,9 @@ public class ProductEndpointsTests : IntegrationTestBase
             Retailer: "Shop",
             Price: null));
 
-        var repair = await CreateRepairAsync(product.Id);
+        var repair = await CreateRepairAsync(
+            product.Id,
+            openedAt: new DateTimeOffset(new DateTime(2029, 9, 1), TimeSpan.Zero));
 
         await Client.PatchAsJsonAsync($"/repairs/{repair.Id}",
             new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
@@ -132,8 +136,17 @@ public class ProductEndpointsTests : IntegrationTestBase
     [Fact]
     public async Task ProductList_FlagsPreviouslyFixedItems()
     {
-        var product = await CreateProductAsync();
-        var repair = await CreateRepairAsync(product.Id);
+        var product = await CreateProductAsync(new ProductCreateRequest(
+            Name: "Was Repaired",
+            Serial: "SN-" + Guid.NewGuid(),
+            PurchaseDate: new DateOnly(2026, 8, 1),
+            WarrantyMonths: 24,
+            Brand: "Acme",
+            Retailer: "Shop",
+            Price: 100m));
+        var repair = await CreateRepairAsync(
+            product.Id,
+            openedAt: new DateTimeOffset(new DateTime(2027, 3, 1), TimeSpan.Zero));
 
         await Client.PatchAsJsonAsync($"/repairs/{repair.Id}", new RepairStatusUpdateRequest(RepairStatus.InProgress), JsonOptions);
         var finalize = await Client.PatchAsJsonAsync($"/repairs/{repair.Id}", new RepairStatusUpdateRequest(RepairStatus.Fixed), JsonOptions);

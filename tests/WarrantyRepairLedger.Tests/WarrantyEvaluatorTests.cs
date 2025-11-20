@@ -66,13 +66,15 @@ namespace WarrantyRepairLedger.Tests;
     [Fact]
     public void GetExpirationDate_ExtendsWhenRepairCompletesWithinCoverage()
     {
-        var openedAt = DateTimeOffset.UtcNow.AddMonths(-3);
-        var closedAt = DateTimeOffset.UtcNow.AddMonths(-1);
+        var purchaseDate = new DateOnly(2026, 8, 1);
+        var baseExpiry = purchaseDate.AddMonths(24);
+        var openedAt = new DateTimeOffset(purchaseDate.ToDateTime(TimeOnly.MinValue).AddMonths(6), TimeSpan.Zero);
+        var closedAt = openedAt.AddMonths(1);
         var product = new Product
         {
             Name = "Console",
             Serial = "XYZ789",
-            PurchaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-26)),
+            PurchaseDate = purchaseDate,
             WarrantyMonths = 24,
             Repairs = new List<Repair>
             {
@@ -87,7 +89,7 @@ namespace WarrantyRepairLedger.Tests;
 
         var expiresOn = _evaluator.GetExpirationDate(product);
 
-        var expectedExtension = DateOnly.FromDateTime(closedAt.UtcDateTime).AddMonths(12);
+        var expectedExtension = baseExpiry.AddMonths(12);
         Assert.Equal(expectedExtension, expiresOn);
     }
 
@@ -98,15 +100,16 @@ namespace WarrantyRepairLedger.Tests;
         {
             Name = "Speaker",
             Serial = "SPEAK1",
-            PurchaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-30)),
+            PurchaseDate = new DateOnly(2026, 8, 1),
             WarrantyMonths = 24,
             Repairs = new List<Repair>
             {
                 new()
                 {
                     Status = RepairStatus.Fixed,
-                    OpenedAt = DateTimeOffset.UtcNow.AddDays(-40),
-                    ClosedAt = DateTimeOffset.UtcNow.AddDays(-5)
+                    // Opened well after the base legal guarantee has already ended
+                    OpenedAt = new DateTimeOffset(new DateTime(2029, 9, 1), TimeSpan.Zero),
+                    ClosedAt = new DateTimeOffset(new DateTime(2029, 9, 15), TimeSpan.Zero)
                 }
             }
         };

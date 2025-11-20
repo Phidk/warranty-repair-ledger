@@ -2,8 +2,10 @@
 @host = http://localhost:8080
 @contentType = application/json
 @serial = R2R-{{$timestamp}}
+@purchaseDate = 2026-08-01
+@repairOpened = 2027-03-01T10:00:00Z
 
-### 1) Create a fresh product (unique serial via {{$timestamp}})
+### 1) Create a fresh product (unique serial via {{$timestamp}}; purchase after 2026-07-31 triggers the legal 12-month extension on repair)
 # @name createProduct
 POST {{host}}/products
 Content-Type: {{contentType}}
@@ -12,7 +14,7 @@ Content-Type: {{contentType}}
   "name": "Right-to-Repair Blender",
   "brand": "KitchenCo",
   "serial": "{{serial}}",
-  "purchaseDate": "2024-03-01",
+  "purchaseDate": "{{purchaseDate}}",
   "warrantyMonths": 24,
   "retailer": "Example Store",
   "price": 249.50
@@ -34,7 +36,7 @@ Content-Type: {{contentType}}
 
 {
   "productId": {{createProduct.response.body.$.id}},
-  "openedAt": "{{$datetime iso8601}}",
+  "openedAt": "{{repairOpened}}",
   "notes": "Motor stalls when blending frozen fruit"
 }
 
@@ -60,7 +62,7 @@ Content-Type: {{contentType}}
 ### 9) Fetch summary report (counts & averages now include this repair)
 GET {{host}}/reports/summary
 
-### 10) Re-check warranty status (repairs opened while covered and fixed later add 12 months)
+### 10) Re-check warranty status (one-time 12-month extension should apply for post-2026 purchase)
 GET {{host}}/products/{{createProduct.response.body.$.id}}/in-warranty
 
 ### 11) Clean up: delete the demo product (cascades repairs for repeatable runs)

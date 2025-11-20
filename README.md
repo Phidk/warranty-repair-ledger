@@ -4,7 +4,7 @@ Local-first web API + helper UI for tracking purchases, warranty windows, and re
 
 ## Why this exists
 
-European consumers technically enjoy a two year legal guarantee, yet most people lose track of receipts, warranty windows, and the extra protection that kicks in when they choose repair. The 2024 Right to Repair update adds another 12 months of coverage after a successful repair, so a household that tracks repairs can squeeze one more season out of an appliance before replacing it.
+European consumers technically enjoy a two year legal guarantee, yet most people lose track of receipts, warranty windows, and the extra protection that kicks in when they choose repair. The 2024 Right to Repair update adds another 12 months of coverage after a successful repair (for contracts on/after 31 July 2026), so a household that tracks repairs can squeeze one more season out of an appliance before replacing it.
 
 This project keeps that bookkeeping boring on purpose: a local first API, a helper UI, and a test suite that encodes the Danish and EU timelines without needing a spreadsheet. Point it at a SQLite file, capture repairs as they happen, and you always know if a seller must fix or refund the item.
 
@@ -111,8 +111,9 @@ DTOs use data annotations (e.g., `[Required]`, `[Range]`). Invalid payloads retu
 
 ## Warranty assumptions
 
-- Default coverage: **24 months** from purchase (Danish/EU legal guarantee).
-- Any repair completed (status **Fixed**) while the product is still covered automatically extends the legal guarantee by **12 months** (Right-to-Repair, 2024). No manual consent checkbox required.
+- Default coverage: **24 months** from purchase (`WarrantyMonths` = statutory legal guarantee, not a commercial warranty).
+- 12‑month extension: applies **once** for contracts on/after **31 July 2026** when a repair (status **Fixed**) was opened within the base legal guarantee window. Extension is anchored to the base expiry (`purchase + legal guarantee`) and does **not** stack with multiple repairs.
+- Repairs opened after the base legal guarantee do **not** extend coverage; purchases before 31 July 2026 stay at the base period.
 - The tracker doesn't model component-level identities; it assumes distinct components across repairs (so it does not restart a fresh 24-month clock for the same exact part).
 - **Replacement not modelled:** Under Danish rules, if a seller replaces a defective item ("omlevering"), the consumer normally gets a new two-year complaint period from the replacement date. This ledger does not attempt to track that automatically; treat a full replacement as a new product entry with its own purchase date/warranty window.
 

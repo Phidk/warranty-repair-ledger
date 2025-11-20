@@ -25,6 +25,9 @@ rm -rf \
   tests/WarrantyRepairLedger.Tests/bin \
   tests/WarrantyRepairLedger.Tests/obj || true
 
+# Start with a fresh dev database on each container create to keep demos repeatable
+rm -f data/ledger.db data/ledger.db-shm data/ledger.db-wal || true
+
 dotnet restore
 dotnet tool restore
 dotnet tool run dotnet-ef database update --project WarrantyRepairLedger/WarrantyRepairLedger.csproj
