@@ -6,7 +6,8 @@
   },
   "remoteUser": "vscode",
   "containerEnv": {
-    "NUGET_FALLBACK_PACKAGES": ""
+    "NUGET_FALLBACK_PACKAGES": "",
+    "DOTNET_USE_POLLING_FILE_WATCHER": "0"
   },
   "mounts": [
     "source=${localWorkspaceFolderBasename}-data,target=${containerWorkspaceFolder}/data,type=volume"
